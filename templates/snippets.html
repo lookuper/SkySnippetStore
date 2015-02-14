@@ -1,1 +1,5 @@
-all avaliable snippets
+<ul class="list-group">
+    <li ng-repeat="snippet in snippets" class="list-group-item">
+        <a href="#" ng-click="openSnippet(snippet)">{{ snippet }}</a>
+    </li>
+</ul>
