@@ -1,6 +1,6 @@
 (function(){
     'use strict';
-    var app = angular.module('SkySnippetStoreApp', ['ui.router', 'LocalStorageModule']);
+    var app = angular.module('SkySnippetStoreApp', ['ui.router', 'LocalStorageModule', 'ui.ace']);
 
     app.config(['$urlRouterProvider', '$stateProvider','localStorageServiceProvider', function($urlRouterProvider, $stateProvider, localStorageServiceProvider) {
         localStorageServiceProvider.setPrefix('SkySnippetStoreApp');
@@ -38,6 +38,27 @@
         $scope.submit = function(){
             localStorageService.set($scope.currentSnippet.name, JSON.stringify($scope.currentSnippet));
             $state.go('allSnippets');
+        };
+        $scope.remove = function() {
+            if ($scope.currentSnippet.name != '') {
+                localStorageService.remove($scope.currentSnippet.name);
+                $state.go('allSnippets');
+            }
+        };
+        $scope.aceLoaded = function(_editor) {
+            ace.require("ace/ext/language_tools");
+            _editor.setTheme("ace/theme/twilight");
+            _editor.getSession().setMode("ace/mode/javascript");
+            _editor.setOptions({
+                useWrapMode: true,
+                showGutter: true,
+                enableBasicAutocompletion: true,
+                enableSnippets: true,
+                enableLiveAutocompletion: true
+            });
+        };
+        $scope.aceChanged = function(e) {
+            var i = 5;
         };
     });
 
