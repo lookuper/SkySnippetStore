@@ -63,8 +63,8 @@
     });
 
     app.controller('AboutController', function($scope) {
-        $scope.createdDate = new Date();
-        $scope.authorName = 'Maksym';
+        $scope.authorName = 'Maksym Chernenko';
+        $scope.location = 'Kiev, Ukraine';
     });
 
     var SnippetDTO = function(name, source) {
