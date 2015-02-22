@@ -1,5 +1,6 @@
 <ul class="list-group">
     <li ng-repeat="snippet in snippets" class="list-group-item">
-        <a href="#" ng-click="openSnippet(snippet)">{{ snippet }}</a>
+        <a href="#" ng-click="openSnippet(snippet.name)">{{ snippet.name }}</a>
+        <span class="pull-right"><p class="text-muted">{{ snippet.createdDate | date:"MM/dd/yyyy 'at' h:mma" }} </p></span>
     </li>
 </ul>

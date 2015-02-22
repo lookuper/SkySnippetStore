@@ -22,7 +22,10 @@
     }]);
 
     app.controller('SnippetsController', function($scope, $state, localStorageService) {
-        $scope.snippets = localStorageService.keys().sort();
+        $scope.snippets = [];
+        localStorageService.keys().forEach(function(item) {
+            $scope.snippets.push(localStorageService.get(item));
+        });
 
         $scope.openSnippet = function(snippetName) {
             $state.go('addNew', {name: snippetName});
@@ -31,12 +34,12 @@
 
     app.controller('AddNewController', function($scope, $state, $stateParams, localStorageService) {
         $scope.currentSnippet = new SnippetDTO();
-        if ($stateParams.name != null) {
+        if ($stateParams.name != null && $stateParams.name.length > 0) {
             $scope.currentSnippet = localStorageService.get($stateParams.name);
         }
 
         $scope.submit = function(){
-            localStorageService.set($scope.currentSnippet.name, JSON.stringify($scope.currentSnippet));
+            localStorageService.set($scope.currentSnippet.name, $scope.currentSnippet);
             $state.go('allSnippets');
         };
         $scope.remove = function() {
