@@ -74,6 +74,8 @@
         this.name = name;
         this.source = source;
         this.createdDate = new Date();
+        this.avaliableLocal = true;
+        this.avaliableOnDrive = false;
     }
 })();
 
