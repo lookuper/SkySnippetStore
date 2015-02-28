@@ -30,6 +30,9 @@
         $scope.openSnippet = function(snippetName) {
             $state.go('addNew', {name: snippetName});
         };
+        $scope.removeItem = function(index) {
+           $scope.snippets.splice(index,1);
+        };
     });
 
     app.controller('AddNewController', function($scope, $state, $stateParams, localStorageService) {

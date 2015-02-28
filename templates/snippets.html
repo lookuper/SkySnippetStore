@@ -4,11 +4,17 @@
         <td align="center">Date</td>
         <td align="center">Local</td>
         <td align="center">gDrive</td>
+        <td align="center">Del</td>
     </tr>
     <tr ng-repeat="snippet in snippets">
         <td align="left"> <a href="#" ng-click="openSnippet(snippet.name)">{{ snippet.name }}</a></td>
         <td align="right"><span class="pull-right"><p class="text-muted">{{ snippet.createdDate | date:"MM/dd/yyyy 'at' h:mma" }} </td>
         <td align="right"><input type="checkbox" disabled="disabled" ng-model="snippet.avaliableLocal"/></td>
         <td align="right"><input type="checkbox" disabled="disabled" ng-model="snippet.avaliableOnDrive"/></td>
+        <td align="center" valign="baseline">
+            <button class="btn btn-danger btn-xs" title=" Remove {{ snippet.name }}"  ng-click="removeItem($index)">
+                <i class="glyphicon glyphicon-remove"></i>
+            </button>
+        </td>
     </tr>
 </table>
