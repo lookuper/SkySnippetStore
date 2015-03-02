@@ -1,6 +1,6 @@
 (function(){
     'use strict';
-    var app = angular.module('SkySnippetStoreApp', ['ui.router', 'LocalStorageModule', 'ui.ace']);
+    var app = angular.module('SkySnippetStoreApp', ['ui.router', 'LocalStorageModule', 'ui.ace', 'angular-google-gapi']);
 
     app.config(['$urlRouterProvider', '$stateProvider','localStorageServiceProvider', function($urlRouterProvider, $stateProvider, localStorageServiceProvider) {
         localStorageServiceProvider.setPrefix('SkySnippetStoreApp');
@@ -21,7 +21,29 @@
         });
     }]);
 
-    app.controller('SnippetsController', function($scope, $state, localStorageService) {
+    app.run(['GAuth', 'GApi', '$state',
+        function(GAuth, GApi, $state) {
+            var CLIENT = '';
+            var BASE = 'https://myGoogleAppEngine.appspot.com/_ah/api';
+
+            GApi.load('drive','v2');
+            GAuth.setClient(CLIENT);
+
+            GAuth.checkAuth().then(
+                function () {
+                    $state.go('webapp.home'); // an example of action if it's possible to
+                    // authenticate user at startup of the application
+                },
+                function() {
+                    $state.go('login');       // an example of action if it's impossible to
+                    // authenticate user at startup of the application
+                }
+            );
+
+        }]);
+
+    app.controller('SnippetsController', function($scope, $state, localStorageService, GApi) {
+
         $scope.snippets = [];
         localStorageService.keys().forEach(function(item) {
             $scope.snippets.push(localStorageService.get(item));
