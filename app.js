@@ -1,8 +1,8 @@
 (function(){
     'use strict';
-    var app = angular.module('SkySnippetStoreApp', ['ui.router', 'LocalStorageModule', 'ui.ace', 'angular-google-gapi']);
+    var app = angular.module('SkySnippetStoreApp', ['ui.router', 'LocalStorageModule', 'ui.ace', 'gapi']);
 
-    app.config(['$urlRouterProvider', '$stateProvider','localStorageServiceProvider', function($urlRouterProvider, $stateProvider, localStorageServiceProvider) {
+    app.config(['$urlRouterProvider', '$stateProvider','localStorageServiceProvider', 'gapiProvider', function($urlRouterProvider, $stateProvider, localStorageServiceProvider, gapiProvider) {
         localStorageServiceProvider.setPrefix('SkySnippetStoreApp');
         $urlRouterProvider.otherwise('/');
 
@@ -19,30 +19,47 @@
             templateUrl: 'templates/about.html',
             controller: 'AboutController'
         });
+
+        gapiProvider.apiKey('AIzaSyCInQBUXglMLFDVXoKhMw_z79mzxnw70Vw');
+        gapiProvider.clientId('929945743179-j55222c4ha33abbh64gg4rfvsahiojdl.apps.googleusercontent.com');
+        gapiProvider.apiScope('https://www.googleapis.com/auth/drive');
     }]);
 
-    app.run(['GAuth', 'GApi', '$state',
-        function(GAuth, GApi, $state) {
-            var CLIENT = '';
-            var BASE = 'https://myGoogleAppEngine.appspot.com/_ah/api';
 
-            GApi.load('drive','v2');
-            GAuth.setClient(CLIENT);
 
-            GAuth.checkAuth().then(
-                function () {
-                    $state.go('webapp.home'); // an example of action if it's possible to
-                    // authenticate user at startup of the application
-                },
-                function() {
-                    $state.go('login');       // an example of action if it's impossible to
-                    // authenticate user at startup of the application
+    app.controller('SnippetsController', function($scope, $state, localStorageService, gapi) {
+        gapi.login().then(function() {
+            $scope.login = 'success';
+            $scope.snippetStoreFolder = null;
+
+            gapi.call("drive", "v2", "files", "list").then(function(response) {
+                // get main folder
+                $scope.allFiles = [];
+                $scope.onlineSnippets = [];
+                for(var i=0; i<response.items.length; i++){
+                    $scope.allFiles.push((response.items[i]));
+                    if (response.items[i].title === 'SnippetStoreFolder') {
+                        $scope.snippetStoreFolder = response.items[i];
+                        break;
+                    }
                 }
-            );
 
-        }]);
+                gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function(r){
+                   for(var i=0; i< r.items.length; i++) {
+                       for(var k=0; k<$scope.allFiles.length; k++) {
+                           if ($scope.allFiles[k].id ===  r.items[i].id) {
+                               $scope.onlineSnippets.push($scope.allFiles[k]);
+                               break;
+                           }
+                       }
+                   }
+                    var i = 6;
+                });
+            })
+        }, function() {
+            $scope.login = 'fail';
+        });
 
-    app.controller('SnippetsController', function($scope, $state, localStorageService, GApi) {
 
         $scope.snippets = [];
         localStorageService.keys().forEach(function(item) {

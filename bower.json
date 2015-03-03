@@ -21,6 +21,7 @@
     "bootstrap": "~3.3.2",
     "angular-local-storage": "~0.1.5",
     "angular-ui-ace": "~0.2.3",
-    "angular-google-gapi": "~0.1.0"
+    "angularjs-gapi": "~0.0.1",
+    "jquery": "~2.1.3"
   }
 }
