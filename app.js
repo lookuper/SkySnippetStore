@@ -25,42 +25,7 @@
         gapiProvider.apiScope('https://www.googleapis.com/auth/drive');
     }]);
 
-
-
     app.controller('SnippetsController', function($scope, $state, localStorageService, gapi) {
-        gapi.login().then(function() {
-            $scope.login = 'success';
-            $scope.snippetStoreFolder = null;
-
-            gapi.call("drive", "v2", "files", "list").then(function(response) {
-                // get main folder
-                $scope.allFiles = [];
-                $scope.onlineSnippets = [];
-                for(var i=0; i<response.items.length; i++){
-                    $scope.allFiles.push((response.items[i]));
-                    if (response.items[i].title === 'SnippetStoreFolder') {
-                        $scope.snippetStoreFolder = response.items[i];
-                        break;
-                    }
-                }
-
-                gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function(r){
-                   for(var i=0; i< r.items.length; i++) {
-                       for(var k=0; k<$scope.allFiles.length; k++) {
-                           if ($scope.allFiles[k].id ===  r.items[i].id) {
-                               $scope.onlineSnippets.push($scope.allFiles[k]);
-                               break;
-                           }
-                       }
-                   }
-                    var i = 6;
-                });
-            })
-        }, function() {
-            $scope.login = 'fail';
-        });
-
-
         $scope.snippets = [];
         localStorageService.keys().forEach(function(item) {
             $scope.snippets.push(localStorageService.get(item));
@@ -71,6 +36,50 @@
         };
         $scope.removeItem = function(index) {
            $scope.snippets.splice(index,1);
+        };
+        $scope.driveLogin = function() {
+            var i = 5;
+            //---------------------------------
+            gapi.login().then(function() {
+                $scope.login = 'success';
+                $scope.snippetStoreFolder = null;
+
+                gapi.call("drive", "v2", "files", "list").then(function(response) {
+                    $scope.allFiles = [];
+                    $scope.onlineSnippets = [];
+                    for(var i=0; i<response.items.length; i++){
+                        $scope.allFiles.push((response.items[i]));
+                        if (response.items[i].title === 'SnippetStoreFolder') {
+                            $scope.snippetStoreFolder = response.items[i];
+                            break;
+                        }
+                    }
+
+                    gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function(r){
+                        for(var i=0; i < r.items.length; i++) {
+                            for(var k=0; k < $scope.allFiles.length; k++) {
+                                if (r.items[i].id === $scope.allFiles[k].id) {
+                                    $scope.onlineSnippets.push($scope.allFiles[k]);
+                                    break;
+                                }
+                            }
+                        }
+
+                        for (var i=0; i < $scope.onlineSnippets.length; i++) {
+                            var item = $scope.onlineSnippets[i];
+                            for (var k=0; k < $scope.snippets.length; k++) {
+                                if ($scope.snippets[k].name === item.title) {
+                                    $scope.snippets[k].avaliableOnDrive = true;
+                                    break;
+                                }
+                            }
+                        }
+                    });
+
+                })
+            }, function() {
+                $scope.login = 'fail';
+            });
         };
     });
 

@@ -1,20 +1,34 @@
-<table class="table table-striped table-bordered">
-    <tr>
-        <td align="center">Name</td>
-        <td align="center">Date</td>
-        <td align="center">Local</td>
-        <td align="center">gDrive</td>
-        <td align="center">Del</td>
-    </tr>
-    <tr ng-repeat="snippet in snippets">
-        <td align="left"> <a href="#" ng-click="openSnippet(snippet.name)">{{ snippet.name }}</a></td>
-        <td align="right"><span class="pull-right"><p class="text-muted">{{ snippet.createdDate | date:"MM/dd/yyyy 'at' h:mma" }} </td>
-        <td align="right"><input type="checkbox" disabled="disabled" ng-model="snippet.avaliableLocal"/></td>
-        <td align="right"><input type="checkbox" disabled="disabled" ng-model="snippet.avaliableOnDrive"/></td>
-        <td align="center" valign="baseline">
-            <button class="btn btn-danger btn-xs" title=" Remove {{ snippet.name }}"  ng-click="removeItem($index)">
-                <i class="glyphicon glyphicon-remove"></i>
-            </button>
-        </td>
-    </tr>
-</table>
+<div>
+    <div class="row">
+        <div class="alert alert-info" style="min-height:60px;">
+            <div class="col-xs-10">
+                <i>Google Drive Refresh</i>
+            </div>
+            <div class="col-xs-2">
+                <button class="btn btn-primary pull-right" title="Check google drive" ng-click="driveLogin()">
+                    <i class="glyphicon glyphicon-refresh"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <table class="table table-striped table-bordered">
+        <tr>
+            <td align="center">Name</td>
+            <td align="center">Date</td>
+            <td align="center">Local</td>
+            <td align="center">gDrive</td>
+            <td align="center">Del</td>
+        </tr>
+        <tr ng-repeat="snippet in snippets">
+            <td align="left"> <a href="#" ng-click="openSnippet(snippet.name)">{{ snippet.name }}</a></td>
+            <td align="right"><span class="pull-right"><p class="text-muted">{{ snippet.createdDate | date:"MM/dd/yyyy 'at' h:mma" }} </td>
+            <td align="right"><input type="checkbox" disabled="disabled" ng-model="snippet.avaliableLocal"/></td>
+            <td align="right"><input type="checkbox" disabled="disabled" ng-model="snippet.avaliableOnDrive"/></td>
+            <td align="center" valign="baseline">
+                <button class="btn btn-danger btn-xs" title=" Remove {{ snippet.name }}"  ng-click="removeItem($index)">
+                    <i class="glyphicon glyphicon-remove"></i>
+                </button>
+            </td>
+        </tr>
+    </table>
+</div>
