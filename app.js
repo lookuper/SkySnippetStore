@@ -25,7 +25,7 @@
         gapiProvider.apiScope('https://www.googleapis.com/auth/drive');
     }]);
 
-    app.controller('SnippetsController', function($scope, $state, localStorageService, gapi) {
+    app.controller('SnippetsController', function($scope, $state, $http, localStorageService, gapi) {
         $scope.snippets = [];
         localStorageService.keys().forEach(function(item) {
             $scope.snippets.push(localStorageService.get(item));
@@ -54,7 +54,7 @@
                             break;
                         }
                     }
-
+                    // get all files in SnippetStore folder
                     gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function(r){
                         for(var i=0; i < r.items.length; i++) {
                             for(var k=0; k < $scope.allFiles.length; k++) {
@@ -65,15 +65,31 @@
                             }
                         }
 
+                        // check files that presents both, local and gDrive
                         for (var i=0; i < $scope.onlineSnippets.length; i++) {
                             var item = $scope.onlineSnippets[i];
                             for (var k=0; k < $scope.snippets.length; k++) {
                                 if ($scope.snippets[k].name === item.title) {
                                     $scope.snippets[k].avaliableOnDrive = true;
+                                    $scope.snippets[k].fileId = item.id;
+                                    $scope.onlineSnippets.splice(i,1);
                                     break;
                                 }
                             }
                         }
+                        // add files that just on gDrive
+                        for (var i=0; i < $scope.onlineSnippets.length; i++) {
+                            var snippet = new SnippetDTO();
+                            snippet.id = $scope.onlineSnippets[i].id;
+                            snippet.name = $scope.onlineSnippets[i].title;
+                            snippet.createdDate = $scope.onlineSnippets[i].createdDate;
+                            snippet.modifiedDate = $scope.onlineSnippets[i].modifiedDate;
+                            snippet.avaliableLocal = false;
+                            snippet.avaliableOnDrive = true;
+
+                            $scope.snippets.push(snippet);
+                        }
+                        var i = 6;
                     });
 
                 })
@@ -125,8 +141,10 @@
         this.name = name;
         this.source = source;
         this.createdDate = new Date();
+        this.modifiedDate = null;
         this.avaliableLocal = true;
         this.avaliableOnDrive = false;
+        this.fileId = null;
     }
 })();
 
