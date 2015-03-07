@@ -19,14 +19,15 @@
             templateUrl: 'templates/about.html',
             controller: 'AboutController'
         });
-
-        gapiProvider.apiKey('AIzaSyCInQBUXglMLFDVXoKhMw_z79mzxnw70Vw');
-        gapiProvider.clientId('929945743179-j55222c4ha33abbh64gg4rfvsahiojdl.apps.googleusercontent.com');
+        gapiProvider.apiKey('AIzaSyAhkKUjOu8FQC_hWLBO7j9KMe7477zsYvM');
+        gapiProvider.clientId('107996144740-gk5ip9tcm0qvm7mr4bse9jjg5tp0dc9m.apps.googleusercontent.com');
         gapiProvider.apiScope('https://www.googleapis.com/auth/drive');
     }]);
 
     app.controller('SnippetsController', function($scope, $state, $http, localStorageService, gapi) {
         $scope.snippets = [];
+
+
         localStorageService.keys().forEach(function(item) {
             $scope.snippets.push(localStorageService.get(item));
         });
@@ -38,58 +39,48 @@
            $scope.snippets.splice(index,1);
         };
         $scope.driveLogin = function() {
-            var i = 5;
-            //---------------------------------
+
+            ////---------------------------------
             gapi.login().then(function() {
                 $scope.login = 'success';
-                $scope.snippetStoreFolder = null;
 
                 gapi.call("drive", "v2", "files", "list").then(function(response) {
-                    $scope.allFiles = [];
-                    $scope.onlineSnippets = [];
-                    for(var i=0; i<response.items.length; i++){
-                        $scope.allFiles.push((response.items[i]));
-                        if (response.items[i].title === 'SnippetStoreFolder') {
-                            $scope.snippetStoreFolder = response.items[i];
-                            break;
-                        }
-                    }
+                    $scope.allFiles = response.items;
+                    $scope.snippetStoreFolder  = Enumerable.from(response.items)
+                        .firstOrDefault("$.title === 'SnippetStoreFolder'");
+
                     // get all files in SnippetStore folder
-                    gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function(r){
-                        for(var i=0; i < r.items.length; i++) {
-                            for(var k=0; k < $scope.allFiles.length; k++) {
-                                if (r.items[i].id === $scope.allFiles[k].id) {
-                                    $scope.onlineSnippets.push($scope.allFiles[k]);
-                                    break;
-                                }
-                            }
-                        }
+                    gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function(resp){
+                        $scope.onlineSnippets = Enumerable.from($scope.allFiles)
+                            .join(Enumerable.from(resp.items), '$.id', '$.id', '$')
+                            .toArray();
 
                         // check files that presents both, local and gDrive
-                        for (var i=0; i < $scope.onlineSnippets.length; i++) {
-                            var item = $scope.onlineSnippets[i];
-                            for (var k=0; k < $scope.snippets.length; k++) {
-                                if ($scope.snippets[k].name === item.title) {
-                                    $scope.snippets[k].avaliableOnDrive = true;
-                                    $scope.snippets[k].fileId = item.id;
-                                    $scope.onlineSnippets.splice(i,1);
-                                    break;
-                                }
-                            }
-                        }
+                        Enumerable.from($scope.snippets)
+                            .join(Enumerable.from($scope.onlineSnippets), '$.name', '$.title', function(a, b) {
+                                a.avaliableOnDrive = true;
+                                a.fileId = b.id;
+                                $scope.onlineSnippets.splice($scope.onlineSnippets.indexOf(b), 1);
+                            }).toArray();
+
                         // add files that just on gDrive
-                        for (var i=0; i < $scope.onlineSnippets.length; i++) {
+                        $scope.onlineSnippets.forEach(function(item) {
                             var snippet = new SnippetDTO();
-                            snippet.id = $scope.onlineSnippets[i].id;
-                            snippet.name = $scope.onlineSnippets[i].title;
-                            snippet.createdDate = $scope.onlineSnippets[i].createdDate;
-                            snippet.modifiedDate = $scope.onlineSnippets[i].modifiedDate;
+                            snippet.id = item.id;
+                            snippet.name = item.title;
+                            snippet.createdDate = item.createdDate;
+                            snippet.modifiedDate = item.modifiedDate;
                             snippet.avaliableLocal = false;
                             snippet.avaliableOnDrive = true;
 
                             $scope.snippets.push(snippet);
-                        }
-                        var i = 6;
+
+                            //var token = window.gapi.auth.getToken().access_token;
+                            //$http.get(item.downloadUrl, {headers: { Authorization: 'Bearer ' + token }})
+                            //    .success(function(data, status, headers, config) {
+                            //        var i = 5;
+                            //    }).error(function(data, status, headers, config) { });
+                        });
                     });
 
                 })
@@ -97,6 +88,8 @@
                 $scope.login = 'fail';
             });
         };
+
+
     });
 
     app.controller('AddNewController', function($scope, $state, $stateParams, localStorageService) {
