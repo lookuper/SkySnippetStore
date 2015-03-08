@@ -24,73 +24,156 @@
         gapiProvider.apiScope('https://www.googleapis.com/auth/drive');
     }]);
 
-    app.controller('SnippetsController', function($scope, $state, $http, localStorageService, gapi) {
+    app.controller('SnippetsController', function($scope, $state, $http, $q, localStorageService, gapi) {
         $scope.snippets = [];
 
 
-        localStorageService.keys().forEach(function(item) {
+        localStorageService.keys().forEach(function (item) {
             $scope.snippets.push(localStorageService.get(item));
         });
 
-        $scope.openSnippet = function(snippetName) {
+        $scope.openSnippet = function (snippetName) {
             $state.go('addNew', {name: snippetName});
         };
-        $scope.removeItem = function(index) {
-           $scope.snippets.splice(index,1);
+        $scope.removeItem = function (index) {
+            $scope.snippets.splice(index, 1);
         };
-        $scope.driveLogin = function() {
-
-            ////---------------------------------
-            gapi.login().then(function() {
-                $scope.login = 'success';
-
-                gapi.call("drive", "v2", "files", "list").then(function(response) {
+        $scope.driveLogin = function () {
+            var deffered = $q.defer();
+            gapi.login().then(function () {
+                gapi.call("drive", "v2", "files", "list").then(function (response) {
                     $scope.allFiles = response.items;
-                    $scope.snippetStoreFolder  = Enumerable.from(response.items)
+                    $scope.snippetStoreFolder = Enumerable.from(response.items)
                         .firstOrDefault("$.title === 'SnippetStoreFolder'");
 
                     // get all files in SnippetStore folder
-                    gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function(resp){
+                    gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function (resp) {
                         $scope.onlineSnippets = Enumerable.from($scope.allFiles)
                             .join(Enumerable.from(resp.items), '$.id', '$.id', '$')
                             .toArray();
 
                         // check files that presents both, local and gDrive
                         Enumerable.from($scope.snippets)
-                            .join(Enumerable.from($scope.onlineSnippets), '$.name', '$.title', function(a, b) {
+                            .join(Enumerable.from($scope.onlineSnippets), '$.name', '$.title', function (a, b) {
                                 a.avaliableOnDrive = true;
                                 a.fileId = b.id;
+                                a.url = b.downloadUrl;
                                 $scope.onlineSnippets.splice($scope.onlineSnippets.indexOf(b), 1);
                             }).toArray();
 
-                        // add files that just on gDrive
-                        $scope.onlineSnippets.forEach(function(item) {
-                            var snippet = new SnippetDTO();
-                            snippet.id = item.id;
-                            snippet.name = item.title;
-                            snippet.createdDate = item.createdDate;
-                            snippet.modifiedDate = item.modifiedDate;
-                            snippet.avaliableLocal = false;
-                            snippet.avaliableOnDrive = true;
-
-                            $scope.snippets.push(snippet);
-
-                            //var token = window.gapi.auth.getToken().access_token;
-                            //$http.get(item.downloadUrl, {headers: { Authorization: 'Bearer ' + token }})
-                            //    .success(function(data, status, headers, config) {
-                            //        var i = 5;
-                            //    }).error(function(data, status, headers, config) { });
-                        });
+                        deffered.resolve();
                     });
-
                 })
-            }, function() {
-                $scope.login = 'fail';
+            });
+
+            return deffered.promise;
+        };
+
+        $scope.getFilesFromDrive = function () {
+            $scope.driveLogin().then(function () {
+                $scope.showFilesFromDrive();
             });
         };
 
+        $scope.showFilesFromDrive = function() {
+            $scope.onlineSnippets.forEach(function (item) {
+                var snippet = new SnippetDTO();
+                snippet.id = item.id;
+                snippet.name = item.title;
+                snippet.createdDate = item.createdDate;
+                snippet.modifiedDate = item.modifiedDate;
+                snippet.avaliableLocal = false;
+                snippet.avaliableOnDrive = true;
+                snippet.url = item.downloadUrl;
 
+                $scope.downloadFileAsync(snippet).success(function(ok) {
+                    var i = 5;
+                }).error(function(notOk) {
+                    var i =5;
+                });
+
+                $scope.snippets.push(snippet);
+            });
+        };
+
+        $scope.downloadFile = function(snippet) {
+            $scope.downloadFileAsync(snippet)
+                .success(function(data) {
+                    var o = localStorageService.get(snippet.name);
+                }).error(function(error) {
+                    // error handling
+                });
+        };
+
+        $scope.uploadFile = function(snippet) {
+            $scope.uploadFileAsync(snippet)
+                .success(function(ok) {
+
+                }).error(function(error) {
+
+                });
+        };
+
+        $scope.uploadFileAsync = function(snippet) {
+            var deffer = $q.defer();
+            var promise = deffer.promise;
+
+            promise.success = function(fn) {
+                promise.then(fn);
+                return promise;
+            };
+
+            promise.error = function(fn) {
+                promise.then(null, fn);
+                return promise;
+            };
+        };
+
+        $scope.downloadFileAsync = function(snippet) {
+            var deffer = $q.defer();
+            var promise = deffer.promise;
+
+            promise.success = function(fn) {
+                promise.then(fn);
+                return promise;
+            };
+
+            promise.error = function(fn) {
+                promise.then(null, fn);
+                return promise;
+            };
+
+            var token = window.gapi.auth.getToken().access_token;
+            $http.get(snippet.url, {headers: { Authorization: 'Bearer ' + token }})
+                .success(function(data, status, headers, config) {
+                    deffer.resolve(data);
+                }).error(function(data, status, headers, config) {
+                    deffer.reject(status);
+                });
+
+            return promise;
+        };
     });
+
+            // add files that just on gDrive
+            //$scope.onlineSnippets.forEach(function(item) {
+            //    var snippet = new SnippetDTO();
+            //    snippet.id = item.id;
+            //    snippet.name = item.title;
+            //    snippet.createdDate = item.createdDate;
+            //    snippet.modifiedDate = item.modifiedDate;
+            //    snippet.avaliableLocal = false;
+            //    snippet.avaliableOnDrive = true;
+            //
+            //    $scope.snippets.push(snippet);
+            //
+            //    //var token = window.gapi.auth.getToken().access_token;
+            //    //$http.get(item.downloadUrl, {headers: { Authorization: 'Bearer ' + token }})
+            //    //    .success(function(data, status, headers, config) {
+            //    //        var i = 5;
+            //    //    }).error(function(data, status, headers, config) { });
+            //});
+
 
     app.controller('AddNewController', function($scope, $state, $stateParams, localStorageService) {
         $scope.currentSnippet = new SnippetDTO();
@@ -138,6 +221,7 @@
         this.avaliableLocal = true;
         this.avaliableOnDrive = false;
         this.fileId = null;
+        this.url = null;
     }
 })();
 
