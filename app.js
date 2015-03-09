@@ -101,32 +101,91 @@
                 .success(function(data) {
                     var o = localStorageService.get(snippet.name);
                 }).error(function(error) {
+                    var i = 5;
                     // error handling
                 });
         };
 
         $scope.uploadFile = function(snippet) {
-            $scope.uploadFileAsync(snippet)
-                .success(function(ok) {
+            //$scope.uploadFileAsync(snippet);
+            //$scope.insertFile(snippet, function(ok) {
+            //    var i = 5;
+            //});
 
-                }).error(function(error) {
-
-                });
+            $scope.updateFile(snippet, function(ok) {
+                var i =5;
+            });
         };
 
-        $scope.uploadFileAsync = function(snippet) {
-            var deffer = $q.defer();
-            var promise = deffer.promise;
+        $scope.updateFile = function(snippet, callback) {
+            var boundary = '-------314159265358979323846';
+            var delimiter = "\r\n--" + boundary + "\r\n";
+            var close_delim = "\r\n--" + boundary + "--";
+            var contentType = 'text/plain';
+            var base64Data = btoa(snippet.source);
 
-            promise.success = function(fn) {
-                promise.then(fn);
-                return promise;
+            gapi.call("drive", "v2", "files", "get", {'fileId': snippet.fileId}).then(function (resp) {
+                var multipartRequestBody =
+                    delimiter +
+                    'Content-Type: application/json\r\n\r\n' +
+                    JSON.stringify(resp) +
+                    delimiter +
+                    'Content-Type: ' + contentType + '\r\n' +
+                    'Content-Transfer-Encoding: base64\r\n' +
+                    '\r\n' +
+                    base64Data +
+                    close_delim;
+
+                var token = window.gapi.auth.getToken().access_token;
+                var request = window.gapi.client.request({
+                    'path': '/upload/drive/v2/files/' + resp.id,
+                    'method': 'PUT',
+                    'params': {'uploadType': 'multipart', 'alt': 'json'},
+                    'headers': {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'multipart/mixed; boundary="' + boundary + '"'
+                    },
+                    'body': multipartRequestBody});
+                request.execute(callback);
+            });
+        };
+        $scope.insertFile = function (snippet, callback) {
+            var boundary = '-------314159265358979323846';
+            var delimiter = "\r\n--" + boundary + "\r\n";
+            var close_delim = "\r\n--" + boundary + "--";
+            var contentType = 'text/plain';
+
+            var metadata = {
+                'title': snippet.name,
+                'mimeType': contentType,
+                'parents': [{'id':$scope.snippetStoreFolder.id}]
             };
 
-            promise.error = function(fn) {
-                promise.then(null, fn);
-                return promise;
-            };
+            var base64Data = btoa(snippet.source);
+            var multipartRequestBody =
+                delimiter +
+                'Content-Type: application/json\r\n\r\n' +
+                JSON.stringify(metadata) +
+                delimiter +
+                'Content-Type: ' + contentType + '\r\n' +
+                'Content-Transfer-Encoding: base64\r\n' +
+                '\r\n' +
+                base64Data +
+                close_delim;
+
+            var token = window.gapi.auth.getToken().access_token;
+            var request = window.gapi.client.request({
+                'path': '/upload/drive/v2/files',
+                'method': 'POST',
+                'params': {'uploadType': 'multipart'},
+                'headers': {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'multipart/mixed; boundary="' + boundary + '"'
+                },
+                'body': multipartRequestBody
+            });
+
+            request.execute(callback);
         };
 
         $scope.downloadFileAsync = function(snippet) {
