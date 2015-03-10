@@ -96,6 +96,14 @@
             });
         };
 
+        $scope.removeFromDrive = function(snippet){
+            var request = window.gapi.client.drive.files.delete({'fileId': snippet.fileId});
+
+            request.execute(function(resp) {
+                snippet.avaliableOnDrive = false;
+            });
+        };
+
         $scope.downloadFile = function(snippet) {
             $scope.downloadFileAsync(snippet)
                 .success(function(data) {
@@ -112,9 +120,11 @@
             //    var i = 5;
             //});
 
-            $scope.updateFile(snippet, function(ok) {
-                var i =5;
-            });
+            //$scope.updateFile(snippet, function(ok) {
+            //    var i =5;
+            //});
+
+            $scope.removeFromDrive(snippet);
         };
 
         $scope.updateFile = function(snippet, callback) {
