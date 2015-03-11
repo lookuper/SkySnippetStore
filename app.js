@@ -96,6 +96,20 @@
             });
         };
 
+        $scope.createSnippetsFolder = function() {
+            var body = {
+                'title': 'SnippetStoreFolder',
+                'mimeType': 'application/vnd.google-apps.folder'
+            };
+
+            // always create new folder
+            var request = window.gapi.client.drive.files.insert({'resource': body});
+
+            request.execute(function(resp){
+               var i = 5;
+            });
+        };
+
         $scope.removeFromDrive = function(snippet){
             var request = window.gapi.client.drive.files.delete({'fileId': snippet.fileId});
 
@@ -124,7 +138,8 @@
             //    var i =5;
             //});
 
-            $scope.removeFromDrive(snippet);
+            //$scope.removeFromDrive(snippet);
+            $scope.createSnippetsFolder();
         };
 
         $scope.updateFile = function(snippet, callback) {
