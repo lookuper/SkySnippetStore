@@ -39,34 +39,41 @@
             $scope.snippets.splice(index, 1);
         };
         $scope.driveLogin = function () {
+
             var deffered = $q.defer();
-            gapi.login().then(function () {
-                gapi.call("drive", "v2", "files", "list").then(function (response) {
-                    $scope.allFiles = response.items;
-                    $scope.snippetStoreFolder = Enumerable.from(response.items)
-                        .firstOrDefault("$.title === 'SnippetStoreFolder'");
+            if (!gapi.isAuth())
+            {
+                gapi.login().then(function () {
+                    gapi.call("drive", "v2", "files", "list").then(function (response) {
+                        $scope.allFiles = response.items;
+                        $scope.snippetStoreFolder = Enumerable.from(response.items)
+                            .firstOrDefault("$.title === 'SnippetStoreFolder'");
 
-                    // get all files in SnippetStore folder
-                    gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function (resp) {
-                        $scope.onlineSnippets = Enumerable.from($scope.allFiles)
-                            .join(Enumerable.from(resp.items), '$.id', '$.id', '$')
-                            .toArray();
+                        // get all files in SnippetStore folder
+                        gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function (resp) {
+                            $scope.onlineSnippets = Enumerable.from($scope.allFiles)
+                                .join(Enumerable.from(resp.items), '$.id', '$.id', '$')
+                                .toArray();
 
-                        // check files that presents both, local and gDrive
-                        Enumerable.from($scope.snippets)
-                            .join(Enumerable.from($scope.onlineSnippets), '$.name', '$.title', function (a, b) {
-                                a.avaliableOnDrive = true;
-                                a.fileId = b.id;
-                                a.url = b.downloadUrl;
-                                $scope.onlineSnippets.splice($scope.onlineSnippets.indexOf(b), 1);
-                            }).toArray();
+                            // check files that presents both, local and gDrive
+                            Enumerable.from($scope.snippets)
+                                .join(Enumerable.from($scope.onlineSnippets), '$.name', '$.title', function (a, b) {
+                                    a.avaliableOnDrive = true;
+                                    a.fileId = b.id;
+                                    a.url = b.downloadUrl;
+                                    $scope.onlineSnippets.splice($scope.onlineSnippets.indexOf(b), 1);
+                                }).toArray();
 
-                        deffered.resolve();
-                    });
-                })
-            });
+                            deffered.resolve();
+                        });
+                    })
+                });
 
-            return deffered.promise;
+                return deffered.promise;
+            }
+            else {
+                deffered.resolve();
+            }
         };
 
         $scope.getFilesFromDrive = function () {

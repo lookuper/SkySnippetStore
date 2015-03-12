@@ -3,7 +3,7 @@
         <div class="alert alert-info" style="min-height:60px;">
             <div class="col-xs-10">
                 <i>Google Drive Refresh</i>
-                <i>Login: {{ login }}</i>
+                <i>Login: {{ gapi.isAuth() }}</i>
             </div>
             <div class="col-xs-2">
                 <button class="btn btn-primary pull-right" title="Get Files from Google Drive" ng-click="getFilesFromDrive()">
