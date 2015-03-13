@@ -25,61 +25,79 @@
     }]);
 
     app.controller('SnippetsController', function($scope, $state, $http, $q, localStorageService, gapi) {
-        $scope.snippets = [];
+        $scope.loadLocalSnippets = function() {
+            $scope.snippets = [];
+            localStorageService.keys().forEach(function (item) {
+                $scope.snippets.push(localStorageService.get(item));
+            });
+        };
 
-
-        localStorageService.keys().forEach(function (item) {
-            $scope.snippets.push(localStorageService.get(item));
-        });
+        $scope.loadLocalSnippets();
 
         $scope.openSnippet = function (snippetName) {
             $state.go('addNew', {name: snippetName});
         };
         $scope.removeItem = function (index) {
+            var item = $scope.snippets[index]
             $scope.snippets.splice(index, 1);
+
+            localStorageService.remove(item.name);
+            if (gapi.isAuth() && (item.fileId != null || item.id != null)) {
+                $scope.removeFromDrive(item);
+            }
         };
+
         $scope.driveLogin = function () {
-
-            var deffered = $q.defer();
-            if (!gapi.isAuth())
-            {
-                gapi.login().then(function () {
-                    gapi.call("drive", "v2", "files", "list").then(function (response) {
-                        $scope.allFiles = response.items;
-                        $scope.snippetStoreFolder = Enumerable.from(response.items)
-                            .firstOrDefault("$.title === 'SnippetStoreFolder'");
-
-                        // get all files in SnippetStore folder
-                        gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function (resp) {
-                            $scope.onlineSnippets = Enumerable.from($scope.allFiles)
-                                .join(Enumerable.from(resp.items), '$.id', '$.id', '$')
-                                .toArray();
-
-                            // check files that presents both, local and gDrive
-                            Enumerable.from($scope.snippets)
-                                .join(Enumerable.from($scope.onlineSnippets), '$.name', '$.title', function (a, b) {
-                                    a.avaliableOnDrive = true;
-                                    a.fileId = b.id;
-                                    a.url = b.downloadUrl;
-                                    $scope.onlineSnippets.splice($scope.onlineSnippets.indexOf(b), 1);
-                                }).toArray();
-
-                            deffered.resolve();
-                        });
-                    })
+            if (!gapi.isAuth()) {
+                gapi.login().then(function() {
+                    $scope.extractFilesFromDriveExtracted();
                 });
-
-                return deffered.promise;
             }
             else {
-                deffered.resolve();
+                $scope.extractFilesFromDriveExtracted();
             }
+        };
+
+        $scope.extractFilesFromDriveExtracted = function() {
+            gapi.call("drive", "v2", "files", "list").then(function (response) {
+                $scope.allFilesOnDrive = response.items;
+                $scope.snippetStoreFolder = Enumerable.from(response.items)
+                    .firstOrDefault("$.title === 'SnippetStoreFolder'");
+
+                if ($scope.snippetStoreFolder == null) {
+                    $scope.createSnippetsFolder();
+                    $scope.extractFilesFromDriveExtracted();
+                };
+
+                // get all files in SnippetStore folder
+                gapi.call("drive", "v2", "children", "list", {'folderId': $scope.snippetStoreFolder.id}).then(function (resp) {
+                    $scope.onlineSnippets = [];
+                    $scope.onlineSnippets = Enumerable.from($scope.allFilesOnDrive)
+                        .join(Enumerable.from(resp.items), '$.id', '$.id', '$')
+                        .toArray();
+
+                    // check files that presents both, local and gDrive
+                    $scope.loadLocalSnippets();
+                    Enumerable.from($scope.snippets)
+                        .join(Enumerable.from($scope.onlineSnippets), '$.name', '$.title', function (a, b) {
+                            a.avaliableOnDrive = true;
+                            a.fileId = b.id;
+                            a.url = b.downloadUrl;
+                            $scope.onlineSnippets.splice($scope.onlineSnippets.indexOf(b), 1);
+                        }).toArray();
+
+                    $scope.showFilesFromDrive();
+                });
+            });
         };
 
         $scope.getFilesFromDrive = function () {
-            $scope.driveLogin().then(function () {
+            if (gapi.isAuth()) {
                 $scope.showFilesFromDrive();
-            });
+            }
+            else {
+                $scope.driveLogin();
+            }
         };
 
         $scope.showFilesFromDrive = function() {
@@ -93,13 +111,13 @@
                 snippet.avaliableOnDrive = true;
                 snippet.url = item.downloadUrl;
 
-                $scope.downloadFileAsync(snippet).success(function(ok) {
-                    var i = 5;
-                }).error(function(notOk) {
-                    var i =5;
-                });
-
                 $scope.snippets.push(snippet);
+                $scope.onlineSnippets.splice($scope.onlineSnippets.indexOf(item), 1);
+                //$scope.downloadFileAsync(snippet).success(function(ok) {
+                //    var i = 5;
+                //}).error(function(notOk) {
+                //    var i =5;
+                //});
             });
         };
 
@@ -111,15 +129,11 @@
 
             // always create new folder
             var request = window.gapi.client.drive.files.insert({'resource': body});
-
-            request.execute(function(resp){
-               var i = 5;
-            });
+            request.execute();
         };
 
         $scope.removeFromDrive = function(snippet){
-            var request = window.gapi.client.drive.files.delete({'fileId': snippet.fileId});
-
+            var request = window.gapi.client.drive.files.delete({'fileId': snippet.id});
             request.execute(function(resp) {
                 snippet.avaliableOnDrive = false;
             });
@@ -136,17 +150,20 @@
         };
 
         $scope.uploadFile = function(snippet) {
-            //$scope.uploadFileAsync(snippet);
-            //$scope.insertFile(snippet, function(ok) {
-            //    var i = 5;
-            //});
-
-            //$scope.updateFile(snippet, function(ok) {
-            //    var i =5;
-            //});
-
-            //$scope.removeFromDrive(snippet);
-            $scope.createSnippetsFolder();
+            if (gapi.isAuth()) {
+                if (!snippet.avaliableOnDrive) {
+                    // first upload to drive
+                    $scope.insertFile(snippet, function (ok) {
+                        snippet.avaliableOnDrive = true;
+                    });
+                }
+                else {
+                    // update file that exist on drive
+                    $scope.updateFile(snippet, function (ok) {
+                        var i = 5;
+                    });
+                }
+            }
         };
 
         $scope.updateFile = function(snippet, callback) {
@@ -219,7 +236,6 @@
 
             request.execute(callback);
         };
-
         $scope.downloadFileAsync = function(snippet) {
             var deffer = $q.defer();
             var promise = deffer.promise;
