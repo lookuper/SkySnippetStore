@@ -3,7 +3,7 @@
         <div class="alert alert-info" style="min-height:60px;">
             <div class="col-xs-10">
                 <i>Google Drive Refresh</i>
-                <i>Login: {{ gapi.isAuth() }}</i>
+                <i>Login: {{ isLoggedIn }}</i>
             </div>
             <div class="col-xs-2">
                 <button class="btn btn-primary pull-right" title="Check google drive" ng-click="driveLogin()">
@@ -18,9 +18,9 @@
             <td align="center">Date</td>
             <td align="center">Local</td>
             <td align="center">gDrive</td>
-            <td align="center">Del</td>
             <td align="center">Upload</td>
             <td align="center">Download</td>
+            <td align="center">Del</td>
         </tr>
         <tr ng-repeat="snippet in snippets">
             <td align="left"> <a href="#" ng-click="openSnippet(snippet.name)">{{ snippet.name }}</a></td>
@@ -28,18 +28,18 @@
             <td align="right"><input type="checkbox" disabled="disabled" ng-model="snippet.avaliableLocal"/></td>
             <td align="right"><input type="checkbox" disabled="disabled" ng-model="snippet.avaliableOnDrive"/></td>
             <td align="center" valign="baseline">
-                <button class="btn btn-danger btn-xs" title="Remove {{ snippet.name }}"  ng-click="removeItem($index)">
-                    <i class="glyphicon glyphicon-remove"></i>
-                </button>
-            </td>
-            <td align="center" valign="baseline">
-                <button class="btn btn-default btn-xs" ng-disabled="!snippet.avaliableLocal" title="Upload {{ snippet.name }}" ng-click="uploadFile(snippet)">
+                <button class="btn btn-default btn-xs" ng-disabled="!snippet.avaliableLocal || !isLoggedIn" title="Upload {{ snippet.name }}" ng-click="uploadFile(snippet)">
                     <i class="glyphicon glyphicon-upload"></i>
                 </button>
             </td>
             <td align="center" valign="baseline">
-                <button class="btn btn-default btn-xs" ng-disabled="!snippet.avaliableOnDrive" title="Download {{ snippet.name }}" ng-click="downloadFile(snippet)">
+                <button class="btn btn-default btn-xs" ng-disabled="!snippet.avaliableOnDrive || !isLoggedIn" title="Download {{ snippet.name }}" ng-click="downloadFile(snippet)">
                     <i class="glyphicon glyphicon-download"></i>
+                </button>
+            </td>
+            <td align="center" valign="baseline">
+                <button class="btn btn-danger btn-xs" title="Remove {{ snippet.name }}"  ng-click="removeItem($index)">
+                    <i class="glyphicon glyphicon-remove"></i>
                 </button>
             </td>
         </tr>

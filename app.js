@@ -33,10 +33,12 @@
         };
 
         $scope.loadLocalSnippets();
+        $scope.isLoggedIn = false;
 
         $scope.openSnippet = function (snippetName) {
             $state.go('addNew', {name: snippetName});
         };
+
         $scope.removeItem = function (index) {
             var item = $scope.snippets[index]
             $scope.snippets.splice(index, 1);
@@ -50,10 +52,12 @@
         $scope.driveLogin = function () {
             if (!gapi.isAuth()) {
                 gapi.login().then(function() {
+                    $scope.isLoggedIn = true;
                     $scope.extractFilesFromDriveExtracted();
                 });
             }
             else {
+                $scope.isLoggedIn = true;
                 $scope.extractFilesFromDriveExtracted();
             }
         };
@@ -66,7 +70,7 @@
 
                 if ($scope.snippetStoreFolder == null) {
                     $scope.createSnippetsFolder();
-                    $scope.extractFilesFromDriveExtracted();
+                    return;
                 };
 
                 // get all files in SnippetStore folder
@@ -113,11 +117,6 @@
 
                 $scope.snippets.push(snippet);
                 $scope.onlineSnippets.splice($scope.onlineSnippets.indexOf(item), 1);
-                //$scope.downloadFileAsync(snippet).success(function(ok) {
-                //    var i = 5;
-                //}).error(function(notOk) {
-                //    var i =5;
-                //});
             });
         };
 
@@ -129,7 +128,9 @@
 
             // always create new folder
             var request = window.gapi.client.drive.files.insert({'resource': body});
-            request.execute();
+            request.execute(function(resp) {
+                $scope.extractFilesFromDriveExtracted();
+            });
         };
 
         $scope.removeFromDrive = function(snippet){
@@ -142,7 +143,9 @@
         $scope.downloadFile = function(snippet) {
             $scope.downloadFileAsync(snippet)
                 .success(function(data) {
-                    var o = localStorageService.get(snippet.name);
+                    snippet.source = data;
+                    snippet.avaliableLocal = true;
+                    localStorageService.set(snippet.name, snippet);
                 }).error(function(error) {
                     var i = 5;
                     // error handling
@@ -155,12 +158,13 @@
                     // first upload to drive
                     $scope.insertFile(snippet, function (ok) {
                         snippet.avaliableOnDrive = true;
+                        $scope.extractFilesFromDriveExtracted();
                     });
                 }
                 else {
                     // update file that exist on drive
                     $scope.updateFile(snippet, function (ok) {
-                        var i = 5;
+                        $scope.extractFilesFromDriveExtracted();
                     });
                 }
             }
@@ -198,6 +202,7 @@
                 request.execute(callback);
             });
         };
+
         $scope.insertFile = function (snippet, callback) {
             var boundary = '-------314159265358979323846';
             var delimiter = "\r\n--" + boundary + "\r\n";
@@ -236,6 +241,7 @@
 
             request.execute(callback);
         };
+
         $scope.downloadFileAsync = function(snippet) {
             var deffer = $q.defer();
             var promise = deffer.promise;
@@ -261,26 +267,6 @@
             return promise;
         };
     });
-
-            // add files that just on gDrive
-            //$scope.onlineSnippets.forEach(function(item) {
-            //    var snippet = new SnippetDTO();
-            //    snippet.id = item.id;
-            //    snippet.name = item.title;
-            //    snippet.createdDate = item.createdDate;
-            //    snippet.modifiedDate = item.modifiedDate;
-            //    snippet.avaliableLocal = false;
-            //    snippet.avaliableOnDrive = true;
-            //
-            //    $scope.snippets.push(snippet);
-            //
-            //    //var token = window.gapi.auth.getToken().access_token;
-            //    //$http.get(item.downloadUrl, {headers: { Authorization: 'Bearer ' + token }})
-            //    //    .success(function(data, status, headers, config) {
-            //    //        var i = 5;
-            //    //    }).error(function(data, status, headers, config) { });
-            //});
-
 
     app.controller('AddNewController', function($scope, $state, $stateParams, localStorageService) {
         $scope.currentSnippet = new SnippetDTO();
@@ -310,9 +296,9 @@
                 enableLiveAutocompletion: true
             });
         };
-        $scope.aceChanged = function(e) {
-            var i = 5;
-        };
+        //$scope.aceChanged = function(e) {
+        //    var i = 5;
+        //};
     });
 
     app.controller('AboutController', function($scope) {
